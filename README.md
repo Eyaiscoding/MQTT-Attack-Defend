@@ -1,11 +1,5 @@
 # Projet 4: Attaque et Défense d'une Chaîne MQTT
 
-**SUP'COM - 3ème année MIT Engineering**  
-**Étudiante:** Eya  
-**Semaines:** S1–S5 (Phase 1: S1–S3, Phase 2: S4–S5)
-
----
-
 ## 📋 Vue d'Ensemble du Projet
 
 Ce projet explore la sécurité des systèmes IoT basés sur MQTT à travers deux phases :
@@ -246,20 +240,3 @@ Voir `firmware-hardened/README.md` pour les détails (à venir).
 
 - **Eya** – Nœud ESP32 (capteur + actionneur), firmware, documentation
 - **Malak** – Configuration broker Mosquitto (Raspberry Pi), tests réseau
-
----
-
-## 📄 Licence
-
-Ce projet est à des fins éducatives dans le cadre du programme MIT à SUP'COM.
-
----
-
-## 🔄 Historique des Versions
-
-| Version | Date | Description |
-|---------|------|-------------|
-| v0.1.0 | S1 | Structure initiale du dépôt et documentation |
-| v0.2.0 | S2–S3 | Firmware vulnérable ESP32 + tests fonctionnels |
-| v1.0.0 | S4–S5 | *(À venir)* Firmware durci avec TLS + authentification |
-
