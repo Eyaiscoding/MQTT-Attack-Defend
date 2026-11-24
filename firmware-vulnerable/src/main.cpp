@@ -69,6 +69,12 @@ const char* TOPIC_RELAY_STATE = "iot/projet4/actionneurs/relais/state";
 #define RECONNECT_DELAY 5000     // Wi-Fi/MQTT reconnection delay (ms)
 #define WIFI_TIMEOUT 10000       // Wi-Fi connection timeout (ms)
 
+// Benchmark Mode Configuration
+// Set to 1 to enable automated 50-message benchmark cycle with CSV output
+// Set to 0 for normal operation
+#define BENCHMARK_MODE 0
+#define BENCHMARK_MESSAGES 50    // Number of messages to send in benchmark mode
+
 // ============================================================================
 // GLOBAL OBJECTS
 // ============================================================================
@@ -88,6 +94,12 @@ bool relayState = false;                 // Current relay state (false = OFF, tr
 // Performance metrics
 unsigned long wifiConnectTime = 0;
 unsigned long mqttConnectTime = 0;
+
+// Benchmark mode state
+#if BENCHMARK_MODE
+int benchmarkMessageCount = 0;
+bool benchmarkComplete = false;
+#endif
 
 // ============================================================================
 // FUNCTION PROTOTYPES
@@ -143,6 +155,16 @@ void setup() {
   publishStatus();
   
   Serial.println("\n[SYSTEM] Initialization complete. Entering main loop...\n");
+  
+#if BENCHMARK_MODE
+  Serial.println("========================================");
+  Serial.println("BENCHMARK MODE ENABLED");
+  Serial.println("========================================");
+  Serial.println("Will automatically publish 50 messages and output CSV data");
+  Serial.println("CSV Format: version,msg_id,connect_ms,publish_ms,free_heap_bytes,min_free_heap_bytes");
+  Serial.println("Copy CSV lines to benchmarks/sample_data/plaintext.csv for analysis");
+  Serial.println("========================================\n");
+#endif
 }
 
 // ============================================================================
@@ -167,10 +189,37 @@ void loop() {
   
   // Publish sensor data at regular intervals
   unsigned long currentTime = millis();
+  
+#if BENCHMARK_MODE
+  // In benchmark mode, publish messages as fast as possible
+  if (!benchmarkComplete && benchmarkMessageCount < BENCHMARK_MESSAGES) {
+    publishSensorData();
+    benchmarkMessageCount++;
+    
+    if (benchmarkMessageCount >= BENCHMARK_MESSAGES) {
+      benchmarkComplete = true;
+      Serial.println("\n========================================");
+      Serial.println("BENCHMARK COMPLETE");
+      Serial.println("========================================");
+      Serial.printf("Total messages sent: %d\n", BENCHMARK_MESSAGES);
+      Serial.printf("WiFi connect time: %lu ms\n", wifiConnectTime);
+      Serial.printf("MQTT connect time: %lu ms\n", mqttConnectTime);
+      Serial.printf("Final free heap: %d bytes\n", ESP.getFreeHeap());
+      Serial.printf("Minimum free heap: %d bytes\n", ESP.getMinFreeHeap());
+      Serial.println("========================================");
+      Serial.println("Copy CSV lines above to plaintext.csv");
+      Serial.println("Reset ESP32 to run benchmark again");
+      Serial.println("========================================\n");
+    }
+    delay(100);  // Small delay between benchmark messages
+  }
+#else
+  // Normal mode: publish at regular intervals
   if (currentTime - lastSensorRead >= SENSOR_INTERVAL) {
     lastSensorRead = currentTime;
     publishSensorData();
   }
+#endif
   
   // Small delay to prevent watchdog timer issues
   delay(10);
@@ -325,18 +374,33 @@ void publishSensorData() {
   serializeJson(jsonDoc, jsonBuffer);
   
   // Publish to MQTT
+  unsigned long publishStart = millis();
   bool success = mqttClient.publish(TOPIC_SENSOR, jsonBuffer, false);  // QoS 0, not retained
+  unsigned long publishTime = millis() - publishStart;
   
   if (success) {
+#if BENCHMARK_MODE
+    // CSV output for benchmark analysis
+    Serial.printf("CSV,plaintext,%d,%lu,%lu,%d,%d\n",
+                  benchmarkMessageCount,
+                  mqttConnectTime,
+                  publishTime,
+                  ESP.getFreeHeap(),
+                  ESP.getMinFreeHeap());
+#else
     Serial.printf("[PUBLISH] Topic: %s\n", TOPIC_SENSOR);
     Serial.printf("[PUBLISH] Payload: %s\n", jsonBuffer);
+    Serial.printf("[PUBLISH] Publish time: %lu ms\n", publishTime);
     Serial.println("[PUBLISH] ✓ Success");
+#endif
   } else {
     Serial.println("[PUBLISH] ✗ Failed (check MQTT connection)");
   }
   
+#if !BENCHMARK_MODE
   Serial.printf("[HEAP] Free heap: %d bytes\n", ESP.getFreeHeap());
   Serial.println("--- End Sensor Cycle ---\n");
+#endif
 }
 
 /**

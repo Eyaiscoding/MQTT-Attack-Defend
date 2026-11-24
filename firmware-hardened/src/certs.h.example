@@ -1,0 +1,147 @@
+/**
+ * @file certs.h.example
+ * @brief TLS/SSL Certificate Template for ESP32 Hardened Firmware
+ * 
+ * @project SUP'COM MIT Project 4: MQTT Attack & Defense
+ * @author Eya
+ * @date November 2026
+ * @phase Phase 2 (S4-S6)
+ * 
+ * @description
+ * This file is a TEMPLATE for embedding X.509 certificates and private keys
+ * into the ESP32 firmware. The actual certificates are generated using the
+ * scripts in /pki and must be manually copied here.
+ * 
+ * @security
+ * ⚠️ IMPORTANT SECURITY NOTES:
+ * 1. This .example file contains PLACEHOLDERS only
+ * 2. Copy this file to src/certs.h before building
+ * 3. Replace placeholders with actual certificate content from pki/certs/
+ * 4. NEVER commit certs.h with real private keys to Git
+ * 5. Ensure .gitignore excludes src/certs.h
+ * 
+ * @usage
+ * 1. Generate PKI certificates:
+ *    cd pki && ./generate_certs.sh (or .ps1 on Windows)
+ * 
+ * 2. Copy this template:
+ *    cp src/certs.h.example src/certs.h
+ * 
+ * 3. Embed certificates in src/certs.h:
+ *    - Replace CA_CERT with content of pki/certs/ca.crt
+ *    - Replace CLIENT_CERT with content of pki/certs/esp32-client.crt
+ *    - Replace CLIENT_KEY with content of pki/certs/esp32-client.key
+ * 
+ * @memory
+ * Certificates are stored in PROGMEM (Flash memory) to preserve RAM.
+ * Total size: ~3-5 KB for CA + client cert + client key (RSA 2048-bit)
+ */
+
+#ifndef CERTS_H
+#define CERTS_H
+
+#include <pgmspace.h>  // PROGMEM support for ESP32
+
+// ============================================================================
+// ROOT CERTIFICATE AUTHORITY (CA)
+// ============================================================================
+// 
+// Copy the ENTIRE content of pki/certs/ca.crt here, including:
+// -----BEGIN CERTIFICATE-----
+// [base64 encoded certificate data]
+// -----END CERTIFICATE-----
+//
+// This CA certificate is used to verify the Mosquitto broker's server
+// certificate during the TLS handshake.
+
+const char CA_CERT[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFazCCA1OgAwIBAgIUXXXXXXXXXXXXXXXXXXXXXXXXXXXwDQYJKoZIhvcNAQEL
+BQAwRTELMAkGA1UEBhMCVE4xDjAMBgNVBAgMBVR1bmlzMQ8wDQYDVQQHDAZBcmlh
+bmExEDAOBgNVBAoMB1NVUENPTTETMBEGA1UECwwKSW9ULVNlY3VyaXR5MB4XDTI2
+... [PLACEHOLDER - Replace with actual ca.crt content] ...
+-----END CERTIFICATE-----
+)EOF";
+
+// ============================================================================
+// ESP32 CLIENT CERTIFICATE
+// ============================================================================
+//
+// Copy the ENTIRE content of pki/certs/esp32-client.crt here.
+//
+// This certificate identifies the ESP32 node to the Mosquitto broker.
+// The Common Name (CN) in this certificate is "esp32-node-01" and is used
+// by Mosquitto for Access Control List (ACL) mapping when
+// use_identity_as_username is enabled.
+
+const char CLIENT_CERT[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIUYYYYYYYYYYYYYYYYYYYYYYYYYYYwDQYJKoZIhvcNAQEL
+BQAwRTELMAkGA1UEBhMCVE4xDjAMBgNVBAgMBVR1bmlzMQ8wDQYDVQQHDAZBcmlh
+bmExEDAOBgNVBAoMB1NVUENPTTETMBEGA1UECwwKSW9ULVNlY3VyaXR5MB4XDTI2
+... [PLACEHOLDER - Replace with actual esp32-client.crt content] ...
+-----END CERTIFICATE-----
+)EOF";
+
+// ============================================================================
+// ESP32 CLIENT PRIVATE KEY
+// ============================================================================
+//
+// ⚠️ EXTREMELY SENSITIVE - HANDLE WITH CARE ⚠️
+//
+// Copy the ENTIRE content of pki/certs/esp32-client.key here.
+//
+// This is the PRIVATE KEY corresponding to the client certificate above.
+// It MUST be kept SECRET and NEVER shared or committed to version control.
+//
+// Security considerations:
+// - This key is embedded in firmware flash memory
+// - ESP32 Flash Encryption can be enabled for production to protect this key
+// - Secure Boot can prevent unauthorized firmware modifications
+// - For maximum security in production, consider using ESP32's Secure Element
+//   or external crypto chip (ATECC608A)
+
+const char CLIENT_KEY[] PROGMEM = R"EOF(
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDZZZZZZZZZZZZZ
+ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+... [PLACEHOLDER - Replace with actual esp32-client.key content] ...
+-----END PRIVATE KEY-----
+)EOF";
+
+// ============================================================================
+// CERTIFICATE SIZES (for reference and diagnostics)
+// ============================================================================
+
+// Approximate sizes (will be computed at compile time)
+#define CA_CERT_SIZE (sizeof(CA_CERT) - 1)
+#define CLIENT_CERT_SIZE (sizeof(CLIENT_CERT) - 1)
+#define CLIENT_KEY_SIZE (sizeof(CLIENT_KEY) - 1)
+
+// Total certificate storage in Flash (PROGMEM)
+#define TOTAL_CERT_SIZE (CA_CERT_SIZE + CLIENT_CERT_SIZE + CLIENT_KEY_SIZE)
+
+// ============================================================================
+// USAGE EXAMPLE IN main.cpp
+// ============================================================================
+//
+// #include "certs.h"
+// 
+// WiFiClientSecure espClient;
+// 
+// void setup() {
+//   // Set CA certificate for server verification
+//   espClient.setCACert(CA_CERT);
+//   
+//   // Set client certificate and private key for mutual TLS (mTLS)
+//   espClient.setCertificate(CLIENT_CERT);
+//   espClient.setPrivateKey(CLIENT_KEY);
+//   
+//   // Connect to MQTT broker over TLS (port 8883)
+//   PubSubClient mqttClient(espClient);
+//   mqttClient.setServer("192.168.1.100", 8883);
+// }
+//
+// ============================================================================
+
+#endif // CERTS_H
